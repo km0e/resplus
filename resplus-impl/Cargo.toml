@@ -1,0 +1,18 @@
+[package]
+name = "resplus-impl"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[features]
+default = ["async"]
+async = ["dep:async-trait"]
+full = ["async"]
+
+[dependencies]
+async-trait = { version = "0.1.87", optional = true }
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+test-util = { path = "../test-util" }
