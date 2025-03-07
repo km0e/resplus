@@ -2,16 +2,16 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 
-use crate::Error;
+use crate::ErrorChain;
 
 #[async_trait]
 pub trait FutResultChain<I, T, E, D> {
-    async fn about(self, desc: D) -> Result<T, Error<I>>
+    async fn about(self, desc: D) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
         D: Into<Cow<'static, str>>;
-    async fn about_else(self, f: impl FnOnce() -> D + Send) -> Result<T, Error<I>>
+    async fn about_else(self, f: impl FnOnce() -> D + Send) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
@@ -23,22 +23,22 @@ impl<I, T, E, F> FutResultChain<I, T, E, &'static str> for F
 where
     F: Future<Output = std::result::Result<T, E>> + Send,
 {
-    async fn about(self, desc: &'static str) -> Result<T, Error<I>>
+    async fn about(self, desc: &'static str) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| Error {
+        self.await.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![desc.into()],
         })
     }
-    async fn about_else(self, f: impl FnOnce() -> &'static str + Send) -> Result<T, Error<I>>
+    async fn about_else(self, f: impl FnOnce() -> &'static str + Send) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| Error {
+        self.await.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![f().into()],
         })
@@ -50,22 +50,22 @@ impl<I, T, E, F> FutResultChain<I, T, E, String> for F
 where
     F: Future<Output = std::result::Result<T, E>> + Send,
 {
-    async fn about(self, desc: String) -> Result<T, Error<I>>
+    async fn about(self, desc: String) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| Error {
+        self.await.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![desc.into()],
         })
     }
-    async fn about_else(self, f: impl FnOnce() -> String + Send) -> Result<T, Error<I>>
+    async fn about_else(self, f: impl FnOnce() -> String + Send) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| Error {
+        self.await.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![f().into()],
         })
@@ -76,18 +76,9 @@ where
 mod tests {
     use super::FutResultChain;
     use crate as resplus;
+    use crate::tests::about;
+    use crate::tests::about_else;
     use test_util::*;
-
-    macro_rules! about {
-        ($e:expr) => {
-            $e.about("source").await?
-        };
-    }
-    macro_rules! about_else {
-        ($e:expr) => {
-            $e.about_else(|| "source").await?
-        };
-    }
 
     #[tokio::test]
     async fn about() {

@@ -6,7 +6,7 @@ use thiserror::Error;
 macro_rules! assert_result {
     ($r:expr, $e:expr) => {
         assert_eq!(
-            || -> Result<(), resplus::Error<Error>> { Ok($r) }()
+            || -> Result<(), resplus::ErrorChain<Error>> { $r }()
                 .unwrap_err()
                 .to_string(),
             $e
@@ -18,7 +18,7 @@ macro_rules! assert_result {
 macro_rules! async_assert_result {
     ($r:expr, $e:expr) => {
         assert_eq!(
-            async || -> Result<(), resplus::Error<Error>> { Ok($r) }()
+            async || -> Result<(), resplus::ErrorChain<Error>> { ($r).await }()
                 .await
                 .unwrap_err()
                 .to_string(),
@@ -49,6 +49,9 @@ pub fn f1(_: i32) -> Result<(), Error1> {
 pub fn f2(_: i32, _: i32) -> Result<(), Error1> {
     Err(Error1)
 }
+pub fn f3(_: i32, _: i32, _: i32) -> Result<(), Error1> {
+    Err(Error1)
+}
 pub async fn af0() -> Result<(), Error1> {
     Err(Error1)
 }
@@ -56,5 +59,8 @@ pub async fn af1(_: i32) -> Result<(), Error1> {
     Err(Error1)
 }
 pub async fn af2(_: i32, _: i32) -> Result<(), Error1> {
+    Err(Error1)
+}
+pub async fn af3(_: i32, _: i32, _: i32) -> Result<(), Error1> {
     Err(Error1)
 }

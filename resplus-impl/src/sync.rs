@@ -1,14 +1,14 @@
 use std::borrow::Cow;
 
-use crate::Error;
+use crate::ErrorChain;
 
 pub trait ResultChain<I, T, E, D> {
-    fn about(self, desc: D) -> Result<T, Error<I>>
+    fn about(self, desc: D) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
         D: Into<Cow<'static, str>>;
-    fn about_else(self, f: impl FnOnce() -> D) -> Result<T, Error<I>>
+    fn about_else(self, f: impl FnOnce() -> D) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
@@ -16,22 +16,22 @@ pub trait ResultChain<I, T, E, D> {
 }
 
 impl<I, T, E> ResultChain<I, T, E, &'static str> for std::result::Result<T, E> {
-    fn about(self, desc: &'static str) -> Result<T, Error<I>>
+    fn about(self, desc: &'static str) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| Error {
+        self.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![desc.into()],
         })
     }
-    fn about_else(self, f: impl FnOnce() -> &'static str) -> Result<T, Error<I>>
+    fn about_else(self, f: impl FnOnce() -> &'static str) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| Error {
+        self.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![f().into()],
         })
@@ -39,22 +39,22 @@ impl<I, T, E> ResultChain<I, T, E, &'static str> for std::result::Result<T, E> {
 }
 
 impl<I, T, E> ResultChain<I, T, E, String> for std::result::Result<T, E> {
-    fn about(self, desc: String) -> Result<T, Error<I>>
+    fn about(self, desc: String) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| Error {
+        self.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![desc.into()],
         })
     }
-    fn about_else(self, f: impl FnOnce() -> String) -> Result<T, Error<I>>
+    fn about_else(self, f: impl FnOnce() -> String) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| Error {
+        self.map_err(|e| ErrorChain {
             source: e.into(),
             context: vec![f().into()],
         })
@@ -65,18 +65,9 @@ impl<I, T, E> ResultChain<I, T, E, String> for std::result::Result<T, E> {
 mod tests {
     use super::ResultChain;
     use crate as resplus;
+    use crate::tests::about;
+    use crate::tests::about_else;
     use test_util::*;
-
-    macro_rules! about {
-        ($e:expr) => {
-            $e.about("source")?
-        };
-    }
-    macro_rules! about_else {
-        ($e:expr) => {
-            $e.about_else(|| "source")?
-        };
-    }
 
     #[test]
     fn about() {

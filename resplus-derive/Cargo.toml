@@ -8,11 +8,16 @@ repository.workspace = true
 [lib]
 proc-macro = true
 
+[features]
+default = ["async"]
+async = ["resplus-impl/async"]
+full = ["async"]
+
 [dependencies]
 proc-macro2 = "1.0.94"
 quote = "1.0.39"
 syn = { version = "2.0.99", features = ["full"] }
-resplus-impl = { path = "../resplus-impl" }
+resplus-impl = { path = "../resplus-impl", optional = true }
 
 [[test]]
 name = "test"
@@ -20,3 +25,4 @@ path = "src/tests.rs"
 
 [dev-dependencies]
 test-util = { path = "../test-util" }
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
