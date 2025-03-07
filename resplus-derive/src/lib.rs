@@ -1,150 +1,75 @@
 extern crate proc_macro;
 
 use core::panic;
+use std::borrow::Cow;
 
-use quote::{ToTokens, format_ident, quote};
+use proc_macro::TokenStream;
+use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
-use syn::{Expr, Token, parenthesized};
+use syn::{Expr, ExprCall, Token, parse_macro_input, parse_str};
 
 use proc_macro2::TokenStream as TokenStream2;
 
-/// receive expr like func(@a,b,@c,d)
 #[proc_macro]
-pub fn flog(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = syn::parse_macro_input!(input as ParsedMap);
+pub fn flog(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ParsedMap);
     quote!(#input).into()
 }
 
-#[derive(Debug, Clone)]
-struct IndexArg {
-    idx: usize,
-}
-
-impl From<usize> for IndexArg {
-    fn from(idx: usize) -> Self {
-        IndexArg { idx }
-    }
-}
-
-impl ToTokens for IndexArg {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let idx = self.idx;
-        let idx = format_ident!("_{}", idx);
-        tokens.extend(quote! {
-            #idx
-        });
-    }
-}
-
 struct PrintArg {
-    idx: IndexArg,
+    idx: Expr,
     arg: Expr,
 }
 
 impl PrintArg {
-    fn new(idx: impl Into<IndexArg>, arg: Expr) -> Self {
-        PrintArg {
-            idx: idx.into(),
-            arg,
-        }
-    }
-}
-
-#[derive(Clone)]
-enum Arg {
-    Regular(Expr),
-    Indexed(IndexArg),
-}
-
-impl ToTokens for Arg {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        match self {
-            Arg::Regular(expr) => {
-                tokens.extend(quote! {
-                    #expr
-                });
-            }
-            Arg::Indexed(idx) => {
-                tokens.extend(quote! {
-                    #idx
-                });
-            }
-        }
+    fn new(idx: Expr, arg: Expr) -> Self {
+        PrintArg { idx, arg }
     }
 }
 
 impl ToTokens for PrintArg {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let idx = self.idx.clone();
-        let arg = self.arg.clone();
+        let idx = &self.idx;
+        let arg = &self.arg;
         tokens.extend(quote! {
             let #idx = #arg;
         });
     }
 }
 
-struct FormatFunc {
-    fmt: String,
-    max_idx: usize,
-}
-
-impl ToTokens for FormatFunc {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let fmt = self.fmt.clone();
-        if self.max_idx > 0 {
-            let mut idxs = Vec::new();
-            for i in 0..self.max_idx {
-                idxs.push(IndexArg { idx: i });
-            }
-            tokens.extend(quote! {
-                format!(#fmt #(,#idxs)*)
-            });
-        } else {
-            tokens.extend(quote! {
-                #fmt
-            });
-        }
-    }
-}
-
 struct ParsedMap {
-    fmt: FormatFunc,
-    func: syn::Ident,
+    fmt: String,
+    func: ExprCall,
     pargs: Vec<PrintArg>,
-    args: Vec<Arg>,
 }
 
 impl ToTokens for ParsedMap {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let pargs = &self.pargs;
         let func = &self.func;
-        let args = &self.args;
         let fmt = &self.fmt;
         tokens.extend(quote! {
             {
                 use resplus::ResultChain;
                 #(#pargs)*
-                #func(#(#args),*).about_else(|| #fmt)?
+                #func.about_else(|| format!(#fmt))?
             }
         });
     }
 }
 
-struct TaggedValue {
-    tag: bool,
-    value: Expr,
+struct PrintIndex {
+    idx: usize,
 }
 
-impl Parse for TaggedValue {
+impl Parse for PrintIndex {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let tag = if input.peek(Token![@]) {
-            input.parse::<Token![@]>()?;
-            true
-        } else {
-            false
-        };
-        let value = input.parse::<syn::Expr>()?;
-        Ok(TaggedValue { tag, value })
+        input.parse::<Token![,]>()?;
+        let idx = input
+            .parse::<syn::LitInt>()?
+            .base10_parse()
+            .expect("parse idx");
+        Ok(PrintIndex { idx })
     }
 }
 
@@ -153,40 +78,31 @@ impl Parse for ParsedMap {
         if input.is_empty() {
             panic!("There should be a function call");
         }
-        let func = input.parse::<syn::Ident>().expect("no function name");
-        let mut pargs = Vec::new();
+        let mut func = input.parse::<ExprCall>()?;
         let mut fargs = Vec::new();
-        let mut args = Vec::new();
-        let content;
-        parenthesized!(content in input);
-        if !content.is_empty() {
-            let mut idx = 0;
-            loop {
-                let tagged_value = content.parse::<TaggedValue>()?;
-                if tagged_value.tag {
-                    pargs.push(PrintArg::new(idx, tagged_value.value));
-                    args.push(Arg::Indexed(idx.into()));
-                    idx += 1;
-                    fargs.push("{}");
-                } else {
-                    args.push(Arg::Regular(tagged_value.value));
-                    fargs.push("_");
-                }
-                if content.is_empty() {
-                    break;
-                }
-                content.parse::<Token![,]>()?;
+        let mut pargs = Vec::new();
+
+        let mut skip_idx = 0;
+        while let Ok(idx) = input.parse::<PrintIndex>() {
+            while skip_idx != idx.idx {
+                fargs.push(Cow::Borrowed("_"));
+                skip_idx += 1;
             }
-        };
-        let fmt = format!("{}({})", func.to_token_stream(), fargs.join(", "));
-        Ok(ParsedMap {
-            func,
-            fmt: FormatFunc {
-                fmt,
-                max_idx: pargs.len(),
-            },
-            args,
-            pargs,
-        })
+            let tmp_id_str = format!("__{}", idx.idx);
+            let tmp_id = parse_str::<Expr>(&tmp_id_str).unwrap();
+            pargs.push(PrintArg::new(
+                tmp_id.clone(),
+                std::mem::replace(&mut func.args[idx.idx], tmp_id),
+            ));
+            fargs.push(format!("{{{tmp_id_str}}}").into());
+            skip_idx += 1;
+        }
+        while skip_idx < func.args.len() {
+            fargs.push("_".into());
+            skip_idx += 1;
+        }
+
+        let fmt = format!("{}({})", func.func.to_token_stream(), fargs.join(", "));
+        Ok(ParsedMap { func, fmt, pargs })
     }
 }

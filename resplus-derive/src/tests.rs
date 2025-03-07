@@ -13,7 +13,6 @@ macro_rules! assert {
         )
     };
 }
-
 #[test]
 fn no_args() {
     assert!(flog!(f0()), "source: Error\n  f0()");
@@ -23,27 +22,27 @@ fn no_args() {
 
 #[test]
 fn with_literal() {
-    assert!(flog!(f1(@1)), "source: Error\n  f1(1)");
-    assert!(flog!(f2(@1, @1)), "source: Error\n  f2(1, 1)");
+    assert!(flog!(f1(1), 0), "source: Error\n  f1(1)");
+    assert!(flog!(f2(1, 1), 0, 1), "source: Error\n  f2(1, 1)");
 }
 
 #[test]
 fn with_variable() {
     let a = 1;
-    assert!(flog!(f1(@a)), "source: Error\n  f1(1)");
-    assert!(flog!(f2(@a, @a)), "source: Error\n  f2(1, 1)");
+    assert!(flog!(f1(a), 0), "source: Error\n  f1(1)");
+    assert!(flog!(f2(a, a), 0, 1), "source: Error\n  f2(1, 1)");
 }
 
 #[test]
 fn with_expr() {
-    assert!(flog!(f1(@1+1)), "source: Error\n  f1(2)");
-    assert!(flog!(f2(@1+1,@1+1)), "source: Error\n  f2(2, 2)");
+    assert!(flog!(f1(1 + 1), 0), "source: Error\n  f1(2)");
+    assert!(flog!(f2(1 + 1, 1 + 1), 0, 1), "source: Error\n  f2(2, 2)");
 }
 
 #[test]
 fn mixed_args() {
-    assert!(flog!(f2(1, @1)), "source: Error\n  f2(_, 1)");
-    assert!(flog!(f2(@1, 1)), "source: Error\n  f2(1, _)");
+    assert!(flog!(f2(1, 1), 1), "source: Error\n  f2(_, 1)");
+    assert!(flog!(f2(1, 1), 0), "source: Error\n  f2(1, _)");
 }
 
 #[test]
