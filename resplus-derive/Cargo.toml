@@ -4,6 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
+description.workspace = true
+license.workspace = true
 
 [lib]
 proc-macro = true
@@ -17,7 +19,7 @@ full = ["async"]
 proc-macro2 = "1.0.94"
 quote = "1.0.39"
 syn = { version = "2.0.99", features = ["full"] }
-resplus-impl = { path = "../resplus-impl", optional = true }
+resplus-impl = { version = "0.1.0", path = "../resplus-impl", optional = true }
 
 [[test]]
 name = "test"
