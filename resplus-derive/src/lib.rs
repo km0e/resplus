@@ -65,13 +65,19 @@ impl ToTokens for Parsed {
         let pargs = &self.pargs;
         let func = &self.func;
         let fmt = format!("{}({})", self.fmt_func(), self.fargs.join(", "));
+        let fut = if cfg!(feature = "async") {
+            quote! {
+                use resplus::FutResultChain;
+            }
+        } else {
+            quote! {}
+        };
         tokens.extend(quote! {
             {
                 use resplus::ResultChain;
-                #[cfg(feature = "async")]
-                use resplus::FutResultChain;
+                #fut
                 #(#pargs)*
-                let __res = #func.about_else(|| format!(#fmt));
+                let __res = #func.about_else(move || format!(#fmt));
                 __res
             }
         });
