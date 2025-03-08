@@ -5,11 +5,11 @@ use std::borrow::Cow;
 
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
-use syn::parse::{Parse, ParseStream};
-use syn::spanned::Spanned;
 use syn::{
-    Expr, ExprCall, ExprLit, ExprMethodCall, ExprRange, Lit, LitInt, Token, parse_macro_input,
-    parse_str,
+    Expr, ExprCall, ExprLit, ExprMethodCall, ExprRange, Lit, LitInt, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input, parse_str,
+    spanned::Spanned,
 };
 
 use proc_macro2::TokenStream as TokenStream2;
@@ -20,18 +20,18 @@ pub fn flog(input: TokenStream) -> TokenStream {
     quote!(#input).into()
 }
 
-struct PrintArg {
+struct TmpArg {
     idx: Expr,
     arg: Expr,
 }
 
-impl PrintArg {
+impl TmpArg {
     fn new(idx: Expr, arg: Expr) -> Self {
-        PrintArg { idx, arg }
+        TmpArg { idx, arg }
     }
 }
 
-impl ToTokens for PrintArg {
+impl ToTokens for TmpArg {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let idx = &self.idx;
         let arg = &self.arg;
@@ -44,7 +44,7 @@ impl ToTokens for PrintArg {
 struct Parsed {
     fargs: Vec<Cow<'static, str>>,
     func: Expr,
-    pargs: Vec<PrintArg>,
+    pargs: Vec<TmpArg>,
 }
 
 impl Parsed {
@@ -86,17 +86,21 @@ impl ToTokens for Parsed {
 
 impl Parse for Parsed {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let boxed_expr2usize = |e: Option<Box<Expr>>| {
-            e.map(|s| {
-                if let Expr::Lit(ExprLit {
-                    lit: Lit::Int(lit), ..
-                }) = s.as_ref()
-                {
-                    return lit.base10_parse::<usize>();
-                }
-                Err(syn::Error::new(s.span(), "expected integer"))
-            })
-            .transpose()
+        let boxed_expr2usize = |e: Option<Box<Expr>>, default: usize| -> syn::Result<usize> {
+            let u = e
+                .map(|s| {
+                    if let Expr::Lit(ExprLit {
+                        lit: Lit::Int(lit), ..
+                    }) = s.as_ref()
+                    {
+                        lit.base10_parse::<usize>()
+                    } else {
+                        Err(syn::Error::new(s.span(), "expected integer"))
+                    }
+                })
+                .transpose()?
+                .unwrap_or(default);
+            Ok(u)
         };
         if input.is_empty() {
             panic!("There should be a function call");
@@ -114,8 +118,8 @@ impl Parse for Parsed {
         while input.parse::<Token![,]>().is_ok() {
             let range = if let Ok(range) = input.fork().parse::<ExprRange>() {
                 input.parse::<ExprRange>()?;
-                let start = boxed_expr2usize(range.start)?.unwrap_or(0);
-                let end = boxed_expr2usize(range.end)?.unwrap_or(args.len());
+                let start = boxed_expr2usize(range.start, 0)?;
+                let end = boxed_expr2usize(range.end, args.len())?;
                 start..end
             } else if let Ok(idx) = input.parse::<LitInt>() {
                 let idx = idx.base10_parse::<usize>()?;
@@ -132,7 +136,7 @@ impl Parse for Parsed {
             for i in range {
                 let tmp_id_str = format!("__{}", i);
                 let tmp_id = parse_str::<Expr>(&tmp_id_str).unwrap();
-                pargs.push(PrintArg::new(
+                pargs.push(TmpArg::new(
                     tmp_id.clone(),
                     std::mem::replace(&mut args[i], tmp_id),
                 ));
@@ -143,9 +147,6 @@ impl Parse for Parsed {
             fargs.push("_".into());
             skip_idx += 1;
         }
-
-        // let fmt = format!("{}({})", func.func.to_token_stream(), fargs.join(", "));
-        // Ok(Parsed { func, fmt, pargs })
         Ok(Parsed { fargs, func, pargs })
     }
 }

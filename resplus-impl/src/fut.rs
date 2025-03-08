@@ -76,8 +76,7 @@ where
 mod tests {
     use super::FutResultChain;
     use crate as resplus;
-    use crate::tests::about;
-    use crate::tests::about_else;
+    use crate::tests::{about, about_else};
     use test_util::*;
 
     #[tokio::test]

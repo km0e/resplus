@@ -65,8 +65,7 @@ impl<I, T, E> ResultChain<I, T, E, String> for std::result::Result<T, E> {
 mod tests {
     use super::ResultChain;
     use crate as resplus;
-    use crate::tests::about;
-    use crate::tests::about_else;
+    use crate::tests::{about, about_else};
     use test_util::*;
 
     #[test]

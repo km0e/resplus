@@ -1,6 +1,6 @@
 [package]
 name = "resplus"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -14,8 +14,8 @@ async = ["resplus-impl/async"]
 full = ["resplus-impl/full", "derive"]
 
 [dependencies]
-resplus-derive = { version = "0.1.0", path = "../resplus-derive", optional = true }
-resplus-impl = { version = "0.1.0", path = "../resplus-impl", optional = true }
+resplus-derive = { version = "0.1.1", path = "../resplus-derive", optional = true }
+resplus-impl = { version = "0.1.1", path = "../resplus-impl", optional = true }
 
 [dev-dependencies]
 test-util = { path = "../test-util" }
