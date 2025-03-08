@@ -64,3 +64,18 @@ pub async fn af2(_: i32, _: i32) -> Result<(), Error1> {
 pub async fn af3(_: i32, _: i32, _: i32) -> Result<(), Error1> {
     Err(Error1)
 }
+pub struct Test;
+impl Test {
+    pub fn f0(&self) -> Result<(), Error1> {
+        Err(Error1)
+    }
+    pub fn f1(&self, _: i32) -> Result<(), Error1> {
+        Err(Error1)
+    }
+    pub fn f2(&self, _: i32, _: i32) -> Result<(), Error1> {
+        Err(Error1)
+    }
+    pub fn f3(&self, _: i32, _: i32, _: i32) -> Result<(), Error1> {
+        Err(Error1)
+    }
+}

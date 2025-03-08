@@ -50,10 +50,28 @@ fn mixed_args() {
     assert_result!(flog!(f3(1, 1, 1), 0, 1), "source: Error\n  f3(1, 1, _)");
     assert_result!(flog!(f3(1, 1, 1), 0..1, 2), "source: Error\n  f3(1, _, 1)");
 }
+
 #[cfg(feature = "async")]
 #[tokio::test]
 async fn async_no_args() {
     async_assert_result!(flog!(af0()), "source: Error\n  af0()");
     async_assert_result!(flog!(af1(1)), "source: Error\n  af1(_)");
     async_assert_result!(flog!(af2(1, 1)), "source: Error\n  af2(_, _)");
+}
+
+#[test]
+fn method_no_args() {
+    let t = Test;
+    assert_result!(flog!(t.f0()), "source: Error\n  f0()");
+    assert_result!(flog!(t.f1(1)), "source: Error\n  f1(_)");
+    assert_result!(flog!(t.f2(1, 1)), "source: Error\n  f2(_, _)");
+}
+
+#[test]
+fn method_with_literal() {
+    let t = Test;
+    assert_result!(flog!(t.f1(1), 0), "source: Error\n  f1(1)");
+    assert_result!(flog!(t.f2(1, 1), 0, 1), "source: Error\n  f2(1, 1)");
+    assert_result!(flog!(t.f2(1, 1), 0..1, 1), "source: Error\n  f2(1, 1)");
+    assert_result!(flog!(t.f3(1, 1, 1), ..), "source: Error\n  f3(1, 1, 1)");
 }
