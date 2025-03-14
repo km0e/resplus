@@ -60,6 +60,17 @@ impl<I, T, E> ResultChain<I, T, E, String> for std::result::Result<T, E> {
         })
     }
 }
+//
+// pub trait ResultChainAttach<T, D> {
+//     fn attach(self, desc: D) -> Result<T, ErrorChain<I>>
+//     where
+//         Self: Sized,
+//         D: Into<Cow<'static, str>>;
+//     fn attach_else(self, f: impl FnOnce() -> D) -> Result<T, ErrorChain<I>>
+//     where
+//         Self: Sized,
+//         D: Into<Cow<'static, str>>;
+// }
 
 #[cfg(test)]
 mod tests {
@@ -81,4 +92,30 @@ mod tests {
         assert_result!(about_else!(f1(1)), "source: Error\n  source");
         assert_result!(about_else!(f2(1, 1)), "source: Error\n  source");
     }
+    //
+    // #[test]
+    // fn attach() {
+    //     assert_result!(attach!(about!(f0())), "source: Error\n  source\n  attach");
+    //     assert_result!(attach!(about!(f1(1))), "source: Error\n  source\n  attach");
+    //     assert_result!(
+    //         attach!(about!(f2(1, 1))),
+    //         "source: Error\n  source\n  attach"
+    //     );
+    // }
+    //
+    // #[test]
+    // fn attach_else() {
+    //     assert_result!(
+    //         attach_else!(about_else!(f0())),
+    //         "source: Error\n  source\n  attach"
+    //     );
+    //     assert_result!(
+    //         attach_else!(about_else!(f1(1))),
+    //         "source: Error\n  source\n  attach"
+    //     );
+    //     assert_result!(
+    //         attach_else!(about_else!(f2(1, 1))),
+    //         "source: Error\n  source\n  attach"
+    //     );
+    // }
 }

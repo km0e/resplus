@@ -3,27 +3,29 @@ use std::fmt::Display;
 use thiserror::Error;
 
 #[macro_export]
+macro_rules! context {
+    ($e:expr) => {
+        || -> Result<(), resplus::ErrorChain<Error>> { $e }()
+    };
+}
+#[macro_export]
+macro_rules! async_context {
+    ($e:expr) => {
+        async || -> Result<(), resplus::ErrorChain<Error>> { ($e).await }().await
+    };
+}
+
+#[macro_export]
 macro_rules! assert_result {
     ($r:expr, $e:expr) => {
-        assert_eq!(
-            || -> Result<(), resplus::ErrorChain<Error>> { $r }()
-                .unwrap_err()
-                .to_string(),
-            $e
-        )
+        assert_eq!(context!($r).unwrap_err().to_string(), $e)
     };
 }
 
 #[macro_export]
 macro_rules! async_assert_result {
     ($r:expr, $e:expr) => {
-        assert_eq!(
-            async || -> Result<(), resplus::ErrorChain<Error>> { ($r).await }()
-                .await
-                .unwrap_err()
-                .to_string(),
-            $e
-        )
+        assert_eq!(async_context!($r).unwrap_err().to_string(), $e)
     };
 }
 #[derive(Debug)]

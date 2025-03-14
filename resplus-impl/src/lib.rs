@@ -9,7 +9,7 @@ pub use sync::ResultChain;
 #[derive(Debug)]
 pub struct ErrorChain<I> {
     pub source: I,
-    context: Vec<Cow<'static, str>>,
+    pub context: Vec<Cow<'static, str>>,
 }
 
 impl<I> ErrorChain<I> {
@@ -24,47 +24,11 @@ impl<I> ErrorChain<I> {
 impl<I: Display> Display for ErrorChain<I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "source: {}", self.source)?;
-        for c in &self.context {
-            write!(f, "\n  {}", c)?;
+        for (i, c) in self.context.iter().enumerate() {
+            write!(f, "\n {} {}", i, c)?;
         }
         Ok(())
     }
-}
-
-#[macro_export]
-macro_rules! define_error {
-    ($error:ty, $source:ty$(, $t:ty)*) => {
-        impl From<$source> for ErrorChain {
-            fn from(value: $source) -> Self {
-                ErrorChain(resplus::ErrorChain::new(value))
-            }
-        }
-        define_error!($error$(, $t)*);
-    };
-    ($error:ty) => {
-        impl From<$error> for ErrorChain {
-            fn from(value: $error) -> Self {
-                ErrorChain(resplus::ErrorChain::new(value))
-            }
-        }
-
-        impl From<resplus::ErrorChain<$error>> for ErrorChain {
-            fn from(value: resplus::ErrorChain<$error>) -> Self {
-                ErrorChain(value)
-            }
-        }
-
-        #[derive(Debug)]
-        pub struct ErrorChain(resplus::ErrorChain<$error>);
-
-        impl std::fmt::Display for ErrorChain {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", self.0)
-            }
-        }
-
-        impl std::error::Error for ErrorChain {}
-    };
 }
 
 #[cfg(test)]
