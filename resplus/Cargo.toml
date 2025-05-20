@@ -14,8 +14,9 @@ async = ["resplus-impl/async"]
 full = ["resplus-impl/full", "derive"]
 
 [dependencies]
-resplus-derive = { version = "0.1.2", optional = true }
-resplus-impl = { version = "0.1.2", optional = true }
+resplus-derive = { version = "0.1.3", optional = true }
+resplus-impl = { version = "0.1.3", optional = true }
+
 
 [dev-dependencies]
 test-util = { path = "../test-util" }

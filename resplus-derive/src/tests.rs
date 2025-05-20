@@ -77,7 +77,7 @@ fn flog_method_with_literal() {
 }
 
 #[derive(Debug)]
-enum ErrorSource {}
+pub enum ErrorSource {}
 
 impl std::fmt::Display for ErrorSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

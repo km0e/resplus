@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 
-use crate::ErrorChain;
+use crate::{ErrorChain, ResultChain};
 
 #[async_trait]
 pub trait FutResultChain<I, T, E, D> {
@@ -28,20 +28,14 @@ where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![desc.into()],
-        })
+        self.await.about(desc)
     }
     async fn about_else(self, f: impl FnOnce() -> &'static str + Send) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![f().into()],
-        })
+        self.await.about_else(f)
     }
 }
 
@@ -55,20 +49,14 @@ where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![desc.into()],
-        })
+        self.await.about(desc)
     }
     async fn about_else(self, f: impl FnOnce() -> String + Send) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.await.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![f().into()],
-        })
+        self.await.about_else(f)
     }
 }
 

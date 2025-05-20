@@ -47,13 +47,13 @@ pub fn define_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         quote! {
             #(#is_async async)* fn attach(self, desc: #str_type) -> Result<T, ErrorChain>{
                 self #(#is_async.await)*.map_err(|mut e| {
-                    e.0.context.push(desc.into());
+                    e.append(desc);
                     e
                 })
             }
             #(#is_async async)*fn attach_else(self, f: impl Send + FnOnce() -> #str_type) -> Result<T, ErrorChain>{
                 self #(#is_async.await)*.map_err(|mut e| {
-                    e.0.context.push(f().into());
+                    e.append(f());
                     e
                 })
             }
@@ -108,6 +108,20 @@ pub fn define_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
 
         impl std::error::Error for ErrorChain {}
+
+        impl std::ops::Deref for ErrorChain {
+            type Target = resplus::ErrorChain<#target>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl std::ops::DerefMut for ErrorChain {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
     };
     let static_str = quote! {
         &'static str

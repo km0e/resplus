@@ -21,20 +21,14 @@ impl<I, T, E> ResultChain<I, T, E, &'static str> for std::result::Result<T, E> {
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![desc.into()],
-        })
+        self.map_err(|e| ErrorChain::with_context(e, desc))
     }
     fn about_else(self, f: impl FnOnce() -> &'static str) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![f().into()],
-        })
+        self.map_err(|e| ErrorChain::with_context(e, f()))
     }
 }
 
@@ -44,20 +38,14 @@ impl<I, T, E> ResultChain<I, T, E, String> for std::result::Result<T, E> {
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![desc.into()],
-        })
+        self.map_err(|e| ErrorChain::with_context(e, desc))
     }
     fn about_else(self, f: impl FnOnce() -> String) -> Result<T, ErrorChain<I>>
     where
         Self: Sized,
         E: Into<I>,
     {
-        self.map_err(|e| ErrorChain {
-            source: e.into(),
-            context: vec![f().into()],
-        })
+        self.map_err(|e| ErrorChain::with_context(e, f()))
     }
 }
 //
